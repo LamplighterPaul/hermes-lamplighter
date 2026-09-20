@@ -231,9 +231,12 @@ class LSPClient:
                     with contextlib.suppress(Exception):
                         await asyncio.wait_for(asyncio.shield(stderr_task), timeout=0.5)
             await self._cleanup_process()
+            # Attach the details to the ORIGINAL exception rather than re-instantiating its
+            # type: LSPRequestError's ctor is (code, message, data), so ``type(e)(text)``
+            # would surface as a TypeError instead of the LSP error the caller logs.
             details = self.failure_details()
             if details:
-                raise type(e)(f"{e} ({details})") from e
+                e.args = (f"{e} ({details})",)
             raise
 
     async def _spawn(self) -> None:
